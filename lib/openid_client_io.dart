@@ -13,16 +13,29 @@ class Authenticator {
 
   final int port;
 
-  Authenticator(Client client,
+  Authenticator(Client? client,
       {this.port = 3000,
       this.urlLancher = _runBrowser,
       Iterable<String> scopes = const [],
       Uri? redirectUri})
-      : flow = redirectUri == null
-            ? Flow.authorizationCodeWithPKCE(client)
-            : Flow.authorizationCode(client)
+      : flow = redirectUri == null ||
+                redirectUri.toString().startsWith("http://localhost") ||
+                redirectUri.toString().startsWith("http://127.0.0.1")
+            ? Flow.authorizationCodeWithPKCE(client!)
+            : Flow.authorizationCode(client!)
           ..scopes.addAll(scopes)
-          ..redirectUri = redirectUri ?? Uri.parse('http://localhost:$port/');
+          ..redirectUri = redirectUri ?? Uri.parse('http://127.0.0.1:$port/');
+
+  /* void logout() async {
+    _forgetCredentials();
+    var c = await credential;
+    if (c == null) return;
+    var uri = c.generateLogoutUrl(
+        redirectUri: Uri.parse(window.location.href).removeFragment());
+    if (uri != null) {
+      window.location.href = uri.toString();
+    }
+  }*/
 
   Future<Credential> authorize() async {
     var state = flow.authenticationUri.queryParameters['state']!;
@@ -71,7 +84,6 @@ class Authenticator {
             await _requestServers.remove(port);
           }));
   }
-
 
   /// Process the Result from a auth Request
   /// You can call this manually if you are redirected to the app by an external browser
